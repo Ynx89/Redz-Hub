@@ -99,7 +99,7 @@ for _, Script in Scripts do
 		
 		-- ✅ Tambahan Fast Attack untuk Blox Fruits
 		if Script.UrlPath == "BloxFruits.luau" then
-			task.delay(5, function()
+			task.delay(1, function()
 				spawn(function()
 					while task.wait() do
 						pcall(function()
