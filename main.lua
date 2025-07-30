@@ -1,134 +1,25 @@
-local Scripts = {
-	{
-		PlacesIds = {2753915549, 4442272183, 7449423635},
-		UrlPath = "BloxFruits.luau"
-	},
-	{
-		PlacesIds = {10260193230},
-		UrlPath = "MemeSea.luau"
-	},
-}
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
+getgenv().Key = ""
 
-local fetcher, urls = {}, {}
+-- Load Redz Hub
+local success, err = pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tlredz/Scripts/main/main.luau"))()
+end)
 
-local _ENV = (getgenv or getrenv or getfenv)()
+-- Fast Attack dijalankan setelah semua benar-benar siap
+task.spawn(function()
+    -- Tunggu CombatFramework siap
+    local CombatFramework, rigController, activeController
+    while not CombatFramework or not rigController or not activeController do
+        pcall(function()
+            CombatFramework = require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("CombatFramework"))
+            rigController = getupvalues(CombatFramework)[2]
+            activeController = rigController.activeController
+        end)
+        task.wait(1)
+    end
 
-urls.Owner = "https://raw.githubusercontent.com/tlredz/";
-urls.Repository = urls.Owner .. "Scripts/refs/heads/main/";
-urls.Translator = urls.Repository .. "Translator/";
-urls.Utils = urls.Repository .. "Utils/";
-
-do
-	local last_exec = _ENV.rz_execute_debounce
-	
-	if last_exec and (tick() - last_exec) <= 5 then
-		return nil
-	end
-	
-	_ENV.rz_execute_debounce = tick()
-end
-
-do
-	local executor = syn or fluxus
-	local queueteleport = queue_on_teleport or (executor and executor.queue_on_teleport)
-	
-	if not _ENV.rz_added_teleport_queue and type(queueteleport) == "function" then
-		local ScriptSettings = {...}
-		local SettingsCode = ""
-		
-		_ENV.rz_added_teleport_queue = true
-		
-		local Success, EncodedSettings = pcall(function()
-			return game:GetService("HttpService"):JSONEncode(ScriptSettings)
-		end)
-		
-		if Success and EncodedSettings then
-			SettingsCode = "unpack(game:GetService('HttpService'):JSONDecode('" .. EncodedSettings .. "'))"
-		end
-		
-		pcall(queueteleport, ("loadstring(game:HttpGet('%smain.luau'))(%s)"):format(urls.Repository, SettingsCode))
-	end
-end
-
-do
-	if _ENV.rz_error_message then
-		_ENV.rz_error_message:Destroy()
-	end
-	
-	local identifyexecutor = identifyexecutor or (function() return "Unknown" end)
-	
-	local function CreateMessageError(Text)
-		_ENV.loadedFarm = nil
-		_ENV.OnFarm = false
-		
-		local Message = Instance.new("Message", workspace)
-		Message.Text = string.gsub(Text, urls.Owner, "")
-		_ENV.rz_error_message = Message
-		
-		error(Text, 2)
-	end
-	
-	local function formatUrl(Url)
-		for key, path in urls do
-			if Url:find("{" .. key .. "}") then
-				return Url:gsub("{" .. key .. "}", path)
-			end
-		end
-		
-		return Url
-	end
-	
-	function fetcher.get(Url)
-		local success, response = pcall(function()
-			return game:HttpGet(formatUrl(Url))
-		end)
-		
-		if success then
-			return response
-		else
-			CreateMessageError(`[1] [{ identifyexecutor() }] failed to get http/url/raw: { Url }\n>>{ response }<<`)
-		end
-	end
-	
-	function fetcher.load(Url: string, concat: string?)
-		local raw = fetcher.get(Url) .. (if concat then concat else "")
-		local runFunction, errorText = loadstring(raw)
-		
-		if type(runFunction) ~= "function" then
-			CreateMessageError(`[2] [{ identifyexecutor() }] sintax error: { Url }\n>>{ errorText }<<`)
-		else
-			return runFunction
-		end
-	end
-end
-
-local function IsPlace(Script)
-	if Script.PlacesIds and table.find(Script.PlacesIds, game.PlaceId) then
-		return true
-	elseif Script.GameId and Script.GameId == game.GameId then
-		return true
-	end
-end
-
-for _, Script in Scripts do
-	if IsPlace(Script) then
-		return fetcher.load("{Repository}Games/" .. Script.UrlPath)(fetcher, ...)
-	end
-end-- Super Fast Attack (One Hit Style)
-local function SuperFastAttack()
-    local RunService = game:GetService("RunService")
-    local Players = game:GetService("Players")
-    local lp = Players.LocalPlayer
-    local chr = lp.Character or lp.CharacterAdded:Wait()
-    local hum = chr:WaitForChild("Humanoid")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-    local CombatFramework = require(lp.PlayerScripts:WaitForChild("CombatFramework"))
-    local rigController = getupvalues(CombatFramework)[2]
-    local activeController = rigController.activeController
-
-    if not activeController then return end
-
+    -- Setup super fast attack
     activeController.timeToNextAttack = 0.1
     activeController.attacking = false
 
@@ -136,25 +27,21 @@ local function SuperFastAttack()
         if activeController and activeController.equipped then
             local blade = activeController.blades[1]
             if not blade then return end
-            for i = 1, 1 do
-                local hitEnemies = {}
-                for _, mob in pairs(workspace.Enemies:GetChildren()) do
-                    if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        table.insert(hitEnemies, mob)
-                    end
+            local hitEnemies = {}
+            for _, mob in pairs(workspace.Enemies:GetChildren()) do
+                if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                    table.insert(hitEnemies, mob)
                 end
-                CombatFramework.activeController.hitboxMagnitude = 60
-                CombatFramework.activeController.timeToNextAttack = 0.1
-                CombatFramework.activeController.increment = 3
-                CombatFramework.activeController:attack(hitEnemies)
             end
+            CombatFramework.activeController.hitboxMagnitude = 60
+            CombatFramework.activeController.timeToNextAttack = 0.1
+            CombatFramework.activeController.increment = 3
+            CombatFramework.activeController:attack(hitEnemies)
         end
     end
 
-    RunService.Stepped:Connect(function()
+    -- Jalankan terus
+    game:GetService("RunService").Stepped:Connect(function()
         pcall(Attack)
     end)
-end
-
--- Jalankan Fast Attack setelah delay kecil (biar Redz Hub load dulu)
-task.delay(5, SuperFastAttack)
+end)
