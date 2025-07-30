@@ -1,47 +1,50 @@
-repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
-getgenv().Key = ""
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
 
--- Load Redz Hub
-local success, err = pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/tlredz/Scripts/main/main.luau"))()
-end)
+local plr = game.Players.LocalPlayer
+local chr = plr.Character or plr.CharacterAdded:Wait()
 
--- Fast Attack dijalankan setelah semua benar-benar siap
-task.spawn(function()
-    -- Tunggu CombatFramework siap
-    local CombatFramework, rigController, activeController
-    while not CombatFramework or not rigController or not activeController do
-        pcall(function()
-            CombatFramework = require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("CombatFramework"))
-            rigController = getupvalues(CombatFramework)[2]
-            activeController = rigController.activeController
-        end)
-        task.wait(1)
-    end
+-- Tunggu CombatFramework
+local CombatFramework
+repeat
+    pcall(function()
+        CombatFramework = require(plr.PlayerScripts:FindFirstChild("CombatFramework"))
+    end)
+    task.wait(1)
+until CombatFramework
 
-    -- Setup super fast attack
-    activeController.timeToNextAttack = 0.1
-    activeController.attacking = false
+-- Cari activeController
+local rig = debug.getupvalues(CombatFramework)[2]
+local controller = rig.activeController
+repeat task.wait() until controller and controller.equipped
 
-    local function Attack()
-        if activeController and activeController.equipped then
-            local blade = activeController.blades[1]
-            if not blade then return end
-            local hitEnemies = {}
-            for _, mob in pairs(workspace.Enemies:GetChildren()) do
-                if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                    table.insert(hitEnemies, mob)
-                end
-            end
-            CombatFramework.activeController.hitboxMagnitude = 60
-            CombatFramework.activeController.timeToNextAttack = 0.1
-            CombatFramework.activeController.increment = 3
-            CombatFramework.activeController:attack(hitEnemies)
+-- Equip tool otomatis
+local function autoEquipTool()
+    for _, tool in pairs(plr.Backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            tool.Parent = chr
+            break
         end
     end
+end
+autoEquipTool()
 
-    -- Jalankan terus
-    game:GetService("RunService").Stepped:Connect(function()
-        pcall(Attack)
+-- Fast Attack logic
+local RunService = game:GetService("RunService")
+RunService.Stepped:Connect(function()
+    pcall(function()
+        if controller and controller.equipped then
+            local blade = controller.blades[1]
+            if not blade then return end
+            local enemies = {}
+            for _, mob in pairs(workspace.Enemies:GetChildren()) do
+                if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                    table.insert(enemies, mob)
+                end
+            end
+            controller.hitboxMagnitude = 60
+            controller.timeToNextAttack = 0.1
+            controller.increment = 3
+            controller:attack(enemies)
+        end
     end)
 end)
